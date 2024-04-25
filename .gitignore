@@ -1,0 +1,5 @@
+env/
+config.yaml
+.vscode/settings.json
+reference/
+*.pyc
