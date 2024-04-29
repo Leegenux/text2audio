@@ -16,11 +16,17 @@ def get_config():
     return config
 
 def detect_clipboard_text():
-    language_map = {"zh-tw": "zh-HK", "ja": "ja-JP", "en": "en-US"}
+    language_map = {
+        "zh-tw": "zh-HK",
+        "ja": "ja-JP",
+        "en": "en-US",
+        "ko": "zh-HK"
+        }
     
     def detect_language(text):
         """Detect the language of the text."""
         language = detect(text)
+        print("langdetect: ", language)
         
         return language_map.get(language, None)
 
