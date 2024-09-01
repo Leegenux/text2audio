@@ -5,6 +5,7 @@ import platform
 import pyperclip
 import yaml
 import fasttext
+import datetime
 
 from urllib.parse import urlencode
 from pathlib import Path
@@ -18,12 +19,23 @@ def get_config():
 
 
 def detect_clipboard_text():
+    # list of support languages for fasttext
+    # https://github.com/facebookresearch/fastText/blob/1142dc4c4ecbc19cc16eee5cdd28472e689267e6/docs/language-identification.md
     language_map = {
         "ja": "ja-JP",
+        "uk": "ja-JP",
         "en": "en-US",
         "yue": "zh-HK",
         "zh": "zh-HK",
         "zh-tw": "zh-HK",
+        "ko": "ko-KR",
+        "ru": "ru-RU",
+        "es": "es-ES",
+        "fr": "fr-FR",
+        "it": "it-IT",
+        "de": "de-DE",
+        "ar": "ar-SA",
+        "la": "la-VA",
     }
 
     def detect_language(text):
@@ -36,33 +48,28 @@ def detect_clipboard_text():
         ]  # 格式是__label__zh, 需要取最后一部分
 
         print("FastText: ", language)
-
         return language_map.get(language, None)
 
     try:
-        content = pyperclip.paste()
+        trailing_text = "英语句子："
+        content = pyperclip.paste().strip()
+        content = content.strip(trailing_text) if content.startswith(trailing_text) else content
     except Exception as e:
         print(f"No access to clipboard: {e}")
         return
 
-    if isinstance(content, str):
+    if isinstance(content, str) and len(content) > 0:
         print("CLIPBOARD CONTENT: ")
         print("------------------")
         print(content)
         print("------------------")
 
         language = detect_language(content)
-        if language:
-            print(f"Language of text: {language}")
-            return (content, language)
-        else:
-            print(
-                "No support for the language of the text, supported languages are: {}".format(
-                    ", ".join(language_map.keys())
-                )
-            )
+        print(f"Locale Code: {language}")
+        return (content, language)
     else:
         print("Not a text content in the clipboard.")
+        return None, None
 
 
 def get_audio_url(content, language, key):
@@ -134,14 +141,27 @@ def copy_to_clipboard(filepath):
 def main():
     config = get_config()
     content, language = detect_clipboard_text()
+    
+    if not content:
+        print("No text content in the clipboard or unsupported language.")
+        return
+    
+    # language = 'en-US'
+    # language = 'ko-KR'
+    # language = 'ar-SA'
+    # language = 'la-VA'
+    language = 'zh-HK'
+    print(f"Requested language: {language}")
     url = get_audio_url(content, language, config["key"])
+
     response = requests.get(url)
     if response.status_code == 200:
 
         audio_dir = os.path.expanduser(config["audio_dir"])
-        base_filename = "synthesize.mp3"
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"synthesize_{timestamp}.mp3"
 
-        filepath = save_audio(response, audio_dir, base_filename)
+        filepath = save_audio(response, audio_dir, filename)
         print(f"The audio file has been saved as {filepath}")
 
         copy_to_clipboard(filepath)
